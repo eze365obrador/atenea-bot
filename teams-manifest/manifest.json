@@ -1,0 +1,68 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
+  "manifestVersion": "1.16",
+  "version": "1.0.0",
+  "id": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+  "packageName": "com.empresa365.atenea",
+  "developer": {
+    "name": "365 Empresa",
+    "websiteUrl": "https://365empresa.com",
+    "privacyUrl": "https://365empresa.com/privacy",
+    "termsOfUseUrl": "https://365empresa.com/terms"
+  },
+  "icons": {
+    "color": "color.png",
+    "outline": "outline.png"
+  },
+  "name": {
+    "short": "Atenea",
+    "full": "Atenea - Asistente Empresarial IA"
+  },
+  "description": {
+    "short": "Tu asistente IA para ventas, incidencias y documentación",
+    "full": "Atenea es un asistente inteligente que te ayuda con consultas de ventas en tiempo real, gestión de incidencias, acceso a políticas y documentación empresarial. Potenciado por IA para responder tus preguntas de forma rápida y precisa."
+  },
+  "accentColor": "#4facfe",
+  "bots": [
+    {
+      "botId": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+      "scopes": ["personal", "team", "groupchat"],
+      "supportsFiles": false,
+      "isNotificationOnly": false,
+      "commandLists": [
+        {
+          "scopes": ["personal", "team", "groupchat"],
+          "commands": [
+            {
+              "title": "ventas",
+              "description": "Consultar métricas de ventas (hoy, ayer, semana, mes)"
+            },
+            {
+              "title": "incidencia",
+              "description": "Crear o consultar estado de incidencias"
+            },
+            {
+              "title": "política",
+              "description": "Consultar políticas y documentación empresarial"
+            },
+            {
+              "title": "ayuda",
+              "description": "Ver todos los comandos disponibles"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "permissions": [
+    "identity",
+    "messageTeamMembers"
+  ],
+  "validDomains": [
+    "atenea-bot-365.azurewebsites.net"
+  ],
+  "webApplicationInfo": {
+    "id": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+    "resource": "api://atenea-bot-365.azurewebsites.net/7ef1434c-efca-45b3-a285-771be3d57bfa"
+  }
+}

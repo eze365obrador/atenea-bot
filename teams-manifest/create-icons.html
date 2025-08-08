@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generar Iconos Atenea</title>
+</head>
+<body>
+    <h2>Iconos para Atenea Bot</h2>
+    <p>Guarda estas imágenes como PNG:</p>
+    
+    <h3>Color Icon (192x192) - Guardar como color.png</h3>
+    <canvas id="colorIcon" width="192" height="192"></canvas>
+    <br>
+    <button onclick="downloadColor()">Descargar color.png</button>
+    
+    <h3>Outline Icon (32x32) - Guardar como outline.png</h3>
+    <canvas id="outlineIcon" width="32" height="32"></canvas>
+    <br>
+    <button onclick="downloadOutline()">Descargar outline.png</button>
+
+    <script>
+        // Color Icon (192x192)
+        const colorCanvas = document.getElementById('colorIcon');
+        const colorCtx = colorCanvas.getContext('2d');
+        
+        // Gradient background
+        const gradient = colorCtx.createLinearGradient(0, 0, 192, 192);
+        gradient.addColorStop(0, '#4facfe');
+        gradient.addColorStop(1, '#00f2fe');
+        colorCtx.fillStyle = gradient;
+        colorCtx.fillRect(0, 0, 192, 192);
+        
+        // White circle
+        colorCtx.fillStyle = 'white';
+        colorCtx.beginPath();
+        colorCtx.arc(96, 96, 70, 0, Math.PI * 2);
+        colorCtx.fill();
+        
+        // "A" letter
+        colorCtx.fillStyle = '#4facfe';
+        colorCtx.font = 'bold 80px Arial';
+        colorCtx.textAlign = 'center';
+        colorCtx.textBaseline = 'middle';
+        colorCtx.fillText('A', 96, 96);
+        
+        // Outline Icon (32x32)
+        const outlineCanvas = document.getElementById('outlineIcon');
+        const outlineCtx = outlineCanvas.getContext('2d');
+        
+        // White background
+        outlineCtx.fillStyle = 'white';
+        outlineCtx.fillRect(0, 0, 32, 32);
+        
+        // Black "A"
+        outlineCtx.fillStyle = 'black';
+        outlineCtx.font = 'bold 20px Arial';
+        outlineCtx.textAlign = 'center';
+        outlineCtx.textBaseline = 'middle';
+        outlineCtx.fillText('A', 16, 16);
+        
+        function downloadColor() {
+            const link = document.createElement('a');
+            link.download = 'color.png';
+            link.href = colorCanvas.toDataURL();
+            link.click();
+        }
+        
+        function downloadOutline() {
+            const link = document.createElement('a');
+            link.download = 'outline.png';
+            link.href = outlineCanvas.toDataURL();
+            link.click();
+        }
+    </script>
+</body>
+</html>

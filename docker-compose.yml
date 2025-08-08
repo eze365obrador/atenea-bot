@@ -1,0 +1,59 @@
+version: '3.8'
+
+services:
+  atenea-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - SHAREPOINT_TENANT_ID=${SHAREPOINT_TENANT_ID}
+      - SHAREPOINT_CLIENT_ID=${SHAREPOINT_CLIENT_ID}
+      - SHAREPOINT_CLIENT_SECRET=${SHAREPOINT_CLIENT_SECRET}
+      - SHAREPOINT_SITE_URL=${SHAREPOINT_SITE_URL}
+      - SHAREPOINT_DOCUMENT_LIBRARY=${SHAREPOINT_DOCUMENT_LIBRARY}
+      - SALES_API_URL=${SALES_API_URL:-https://api.365equipo.com/ventas}
+      - CHROMA_URL=http://chroma:8000
+    depends_on:
+      - chroma
+    networks:
+      - atenea-network
+    restart: unless-stopped
+
+  chroma:
+    image: ghcr.io/chroma-core/chroma:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    environment:
+      - CHROMA_DB_IMPL=duckdb+parquet
+      - CHROMA_PERSIST_DIRECTORY=/chroma/chroma
+    networks:
+      - atenea-network
+    restart: unless-stopped
+
+  # Optional: Web interface (copy from previous implementation)
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./web-static:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - atenea-api
+    networks:
+      - atenea-network
+    restart: unless-stopped
+
+volumes:
+  chroma-data:
+
+networks:
+  atenea-network:
+    driver: bridge
