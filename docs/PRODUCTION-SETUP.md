@@ -28,15 +28,27 @@ Este script crea:
 
 ### 2. Configurar Repositorio GitHub
 
+**Opción A: Manual (sin GitHub CLI)**
+1. Ve a [github.com](https://github.com) y crea un nuevo repositorio llamado `atenea-bot`
+2. **NO** marques "Initialize with README"
+3. Conectar repositorio local:
+
 ```bash
-# Inicializar git si no existe
 git init
 git add .
 git commit -m "Initial commit"
-
-# Crear repositorio en GitHub y conectar
-gh repo create atenea-bot --public
 git remote add origin https://github.com/TU-USUARIO/atenea-bot.git
+git push -u origin main
+```
+
+**Opción B: Con GitHub CLI**
+```bash
+# Instalar GitHub CLI (opcional)
+brew install gh
+gh auth login
+
+# Crear repositorio automáticamente
+gh repo create atenea-bot --public
 git push -u origin main
 ```
 
