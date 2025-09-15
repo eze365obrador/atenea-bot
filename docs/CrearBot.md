@@ -122,7 +122,7 @@ npm run start:dev
 ngrok http 3978
 
 # 3. Si cambió la URL de ngrok, actualizar bot
-az bot update --name atenea-bot-365 --resource-group rg-atenea-bot --endpoint "https://NUEVA-URL-NGROK.ngrok-free.app/api/messages"
+az bot update --name atenea-bot-365 --resource-group rg-atenea-bot --endpoint "https://5fc977db3240.ngrok-free.app/api/messages"
 ```
 
 ## ✨ Resultado Final
