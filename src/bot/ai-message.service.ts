@@ -2,19 +2,39 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { HttpService } from '@nestjs/axios';
 import { firstValueFrom } from 'rxjs';
+import { SalesService } from '../sales/sales.service';
+import { OrganizationService } from '../organization/organization.service';
+import { IncidentsService } from '../incidents/incidents.service';
+import { AiService } from '../ai/ai.service';
 
 @Injectable()
 export class AIMessageService {
   private azureOpenAIEndpoint: string;
   private azureOpenAIKey: string;
+  private azureOpenAIDeployment: string;
+  private azureOpenAIVersion: string;
   private conversationHistory: Map<string, any[]> = new Map();
 
   constructor(
     private configService: ConfigService,
-    private httpService: HttpService
+    private httpService: HttpService,
+    private salesService: SalesService,
+    private organizationService: OrganizationService,
+    private incidentsService: IncidentsService,
+    private aiService: AiService,
   ) {
-    this.azureOpenAIEndpoint = 'https://westeurope.api.cognitive.microsoft.com';
-    this.azureOpenAIKey = '482874af7ec6474488a9f4b82386d191';
+    // Config desde .env (ver .env / .env.production)
+    this.azureOpenAIEndpoint =
+      this.configService.get<string>('AZURE_OPENAI_ENDPOINT') ||
+      'https://westeurope.api.cognitive.microsoft.com';
+    this.azureOpenAIKey =
+      this.configService.get<string>('AZURE_OPENAI_API_KEY') || '';
+    this.azureOpenAIDeployment =
+      this.configService.get<string>('AZURE_OPENAI_DEPLOYMENT_NAME') ||
+      'gpt-4o-mini';
+    this.azureOpenAIVersion =
+      this.configService.get<string>('AZURE_OPENAI_API_VERSION') ||
+      '2024-08-01-preview';
   }
 
   async processMessage(userId: string, message: string): Promise<string> {
@@ -23,23 +43,22 @@ export class AIMessageService {
     const lowerMessage = message.toLowerCase();
     
     try {
-      if (lowerMessage.includes('ventas')) {
-        return await this.handleSalesQuery(message);
-      }
-      
-      if (lowerMessage.includes('incidencia')) {
-        return await this.handleIncidentQuery(message);
-      }
-      
+      // Atajos comunes
       if (lowerMessage.includes('ayuda') || lowerMessage.includes('help')) {
         return this.getHelpMessage();
       }
-
       if (lowerMessage.includes('hola') || lowerMessage.includes('hello')) {
         return this.getWelcomeMessage();
       }
 
-      // Usar Azure OpenAI para cualquier mensaje no específico
+      // 1) Pedir a OpenAI (Azure) que planifique el enrutamiento y parámetros
+      const plan = await this.planApiCall(userId, message);
+      if (plan) {
+        const routed = await this.executePlan(plan, message, userId);
+        if (routed) return routed;
+      }
+
+      // 2) Fallback a conversación general (Azure OpenAI)
       return await this.processWithAzureOpenAI(userId, message);
 
     } catch (error) {
@@ -48,69 +67,155 @@ export class AIMessageService {
     }
   }
 
-  private async handleSalesQuery(message: string): Promise<string> {
-    const today = new Date().toLocaleDateString('es-ES');
-    
-    if (message.toLowerCase().includes('hoy')) {
-      return `📊 **Ventas de Hoy (${today})**\n\n` +
-        `💰 Total: €15,420.50\n` +
-        `📦 Productos vendidos: 87\n` +
-        `👥 Clientes atendidos: 34\n` +
-        `📈 Variación vs ayer: +12.3%\n\n` +
-        `Top productos:\n` +
-        `1. Producto A - 23 unidades\n` +
-        `2. Producto B - 19 unidades\n` +
-        `3. Producto C - 15 unidades`;
-    }
-    
-    if (message.toLowerCase().includes('ayer')) {
-      return `📊 **Ventas de Ayer**\n\n` +
-        `💰 Total: €13,745.20\n` +
-        `📦 Productos vendidos: 76\n` +
-        `👥 Clientes atendidos: 29`;
-    }
-    
-    if (message.toLowerCase().includes('semana')) {
-      return `📊 **Ventas de la Semana**\n\n` +
-        `💰 Total: €87,234.80\n` +
-        `📦 Productos vendidos: 512\n` +
-        `👥 Clientes atendidos: 198\n` +
-        `📈 Mejor día: Martes (€18,420.30)`;
-    }
+  // Plan de enrutamiento generado por OpenAI (Azure)
+  private async planApiCall(
+    userId: string,
+    message: string
+  ): Promise<{
+    module: 'ventas' | 'incidencias' | 'organizacion' | 'general';
+    intent: string;
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+    endpoint?: string;
+    params?: Record<string, any>;
+    confidence: number;
+    reason: string;
+  } | null> {
+    try {
+      const salesBaseUrl =
+        this.configService.get<string>('SALES_API_URL') ||
+        this.configService.get<string>('VENTAS_API_URL') ||
+        'https://api.365equipo.com/ventas';
 
-    return `📊 Para consultar ventas, especifica el período:\n` +
-      `• "ventas de hoy"\n` +
-      `• "ventas de ayer"\n` +
-      `• "ventas de la semana"\n` +
-      `• "ventas del mes"`;
+      const systemPrompt = `Eres el Router de Atenea. Tu tarea es analizar el mensaje del usuario (en español) y devolver un plan JSON ESTRICTO para cuál módulo debe manejarlo y cómo invocar su API.
+
+Módulos disponibles:
+- ventas: consulta de ventas, métricas, periodos de tiempo.
+- incidencias: crear ticket, listar/consultar incidencias.
+- organizacion: políticas, RRHH, procedimientos. Usa SharePoint (no API HTTP directa).
+- general: saludos, conversación ligera o cuando no haya acción de API.
+
+Construye SIEMPRE un JSON válido con estas claves:
+{
+  "module": "ventas|incidencias|organizacion|general",
+  "intent": "breve_nombre_de_intencion",
+  "method": "GET|POST|PUT|DELETE",
+  "endpoint": "URL completa si aplica (para ventas usa ${salesBaseUrl})",
+  "params": { "...": "..." },
+  "confidence": 0.0-1.0,
+  "reason": "1-2 frases explicando la decisión"
+}
+
+Reglas específicas:
+- Para ventas: si piden periodos tipo hoy/ayer/semana/mes/etc., calcula "fechaInicio" y "fechaFinal" en ISO (Europe/Madrid) y ponlas en params. Usa method GET y endpoint ${salesBaseUrl}.
+- Para incidencias: si piden crear, extrae titulo/descripcion/prioridad (baja|media|alta|critica) en params y usa intent="incident.create". Si piden listar/consultar, usa intent="incident.list" o "incident.status" con params relevantes. endpoint puede omitirse (lo maneja servicio interno).
+- Para organizacion: usa intent="org.answer" y params { "question": mensaje } (endpoint omitido).
+- Si es solo saludo o charla, module=general; method puede ser GET y sin endpoint.
+- Devuelve SOLO el JSON sin texto adicional.`;
+
+      const messages = [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: `Usuario: ${userId}\nMensaje: ${message}` },
+      ];
+
+      const url = `${this.azureOpenAIEndpoint.replace(/\/$/, '')}/openai/deployments/${this.azureOpenAIDeployment}/chat/completions?api-version=${this.azureOpenAIVersion}`;
+
+      const response = await firstValueFrom(
+        this.httpService.post(
+          url,
+          {
+            messages,
+            temperature: 0,
+            max_tokens: 400,
+          },
+          {
+            headers: {
+              'api-key': this.azureOpenAIKey,
+              'Content-Type': 'application/json',
+            },
+          }
+        )
+      );
+
+      const content = response.data.choices?.[0]?.message?.content || '';
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      const plan = JSON.parse(jsonMatch[0]);
+      console.log('[AIMessageService] Router plan:', plan);
+      return plan;
+    } catch (err) {
+      console.error('[AIMessageService] planApiCall error:', err);
+      // Fallback: usar Gemini (AiService) para decidir el módulo si Azure falla
+      try {
+        const decision = await this.aiService.determineModule(message);
+        const module = (decision.module as any) || 'general';
+        const salesBaseUrl =
+          this.configService.get<string>('SALES_API_URL') ||
+          this.configService.get<string>('VENTAS_API_URL') ||
+          'https://api.365equipo.com/ventas';
+        return {
+          module,
+          intent:
+            module === 'ventas'
+              ? 'sales.query'
+              : module === 'incidencias'
+              ? 'incident.query'
+              : module === 'organizacion'
+              ? 'org.answer'
+              : 'general.chat',
+          method: module === 'ventas' ? 'GET' : 'GET',
+          endpoint: module === 'ventas' ? salesBaseUrl : undefined,
+          params: {},
+          confidence: decision.confidence || 0.4,
+          reason: 'Fallback router via Gemini (Azure OpenAI no disponible)'
+        } as any;
+      } catch (fallbackErr) {
+        console.error('[AIMessageService] Gemini fallback routing error:', fallbackErr);
+        return null;
+      }
+    }
   }
 
-  private async handleIncidentQuery(message: string): Promise<string> {
-    if (message.toLowerCase().includes('crear') || message.toLowerCase().includes('nueva')) {
-      return `🎫 **Crear Nueva Incidencia**\n\n` +
-        `Para crear una incidencia, proporciona:\n` +
-        `1. Descripción del problema\n` +
-        `2. Prioridad (Alta/Media/Baja)\n` +
-        `3. Área afectada\n\n` +
-        `Ejemplo: "Crear incidencia: El sistema de cobro no funciona, prioridad alta, área ventas"\n\n` +
-        `¿Cuál es el problema que deseas reportar?`;
+  // Ejecutar el plan llamando al servicio correspondiente
+  private async executePlan(
+    plan: {
+      module: 'ventas' | 'incidencias' | 'organizacion' | 'general';
+      intent: string;
+      method: 'GET' | 'POST' | 'PUT' | 'DELETE';
+      endpoint?: string;
+      params?: Record<string, any>;
+      confidence: number;
+      reason: string;
+    },
+    originalMessage: string,
+    userId: string
+  ): Promise<string | null> {
+    try {
+      switch (plan.module) {
+        case 'ventas': {
+          const fechas = {
+            fechaInicio: plan.params?.fechaInicio,
+            fechaFinal: plan.params?.fechaFinal,
+          };
+          const res = await this.salesService.processSalesQuery(originalMessage, fechas);
+          return res.message;
+        }
+        case 'incidencias': {
+          // Reutilizamos el servicio existente; el intent puede ayudar en el futuro
+          const res = await this.incidentsService.processIncidentQuery(originalMessage, userId);
+          return res.message;
+        }
+        case 'organizacion': {
+          const res = await this.organizationService.processOrganizationQuery(originalMessage);
+          return res.message;
+        }
+        case 'general':
+        default:
+          return null; // Dejar que el fallback conversacional responda
+      }
+    } catch (err) {
+      console.error('[AIMessageService] executePlan error:', err);
+      return null;
     }
-    
-    if (message.toLowerCase().includes('estado') || message.toLowerCase().includes('consultar')) {
-      return `🎫 **Incidencias Activas**\n\n` +
-        `📍 INC-001: Sistema de cobro lento\n` +
-        `   Estado: En progreso\n` +
-        `   Prioridad: Alta\n\n` +
-        `📍 INC-002: Error en reportes\n` +
-        `   Estado: Abierta\n` +
-        `   Prioridad: Media\n\n` +
-        `Total: 2 incidencias activas`;
-    }
-
-    return `🎫 Para gestión de incidencias:\n` +
-      `• "crear incidencia" - Nueva incidencia\n` +
-      `• "estado incidencias" - Ver activas\n` +
-      `• "incidencia INC-XXX" - Ver detalle`;
   }
 
   private async processWithAzureOpenAI(userId: string, message: string): Promise<string> {
@@ -138,7 +243,7 @@ export class AIMessageService {
 
       const response = await firstValueFrom(
         this.httpService.post(
-          `${this.azureOpenAIEndpoint}/openai/deployments/gpt-4o-mini/chat/completions?api-version=2024-08-01-preview`,
+          `${this.azureOpenAIEndpoint.replace(/\/$/, '')}/openai/deployments/${this.azureOpenAIDeployment}/chat/completions?api-version=${this.azureOpenAIVersion}`,
           {
             messages,
             max_tokens: 500,
@@ -162,7 +267,14 @@ export class AIMessageService {
       return aiResponse;
     } catch (error) {
       console.error('[AIMessageService] Azure OpenAI Error:', error);
-      return this.getDefaultResponse(message);
+      // Fallback: respuesta general con Gemini si Azure falla
+      try {
+        const gen = await this.aiService.generateGeneralResponse(message, userId);
+        return gen.message;
+      } catch (fallbackErr) {
+        console.error('[AIMessageService] Gemini general fallback error:', fallbackErr);
+        return this.getDefaultResponse(message);
+      }
     }
   }
 

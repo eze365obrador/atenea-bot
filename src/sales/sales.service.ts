@@ -17,10 +17,22 @@ export class SalesService {
     this.apiUrl = this.configService.get<string>('sales.apiUrl') || 'https://api.365equipo.com/ventas';
   }
 
-  async processSalesQuery(message: string): Promise<{ message: string }> {
+  async processSalesQuery(
+    message: string,
+    overrideDates?: { fechaInicio?: string; fechaFinal?: string }
+  ): Promise<{ message: string }> {
     try {
-      // Extraer fechas del mensaje
-      const dateParams = await this.extractDatesFromMessage(message);
+      // Fechas de consulta (si el router IA las proporciona, usarlas)
+      let dateParams: { fechaInicio: string; fechaFinal: string };
+      if (overrideDates?.fechaInicio && overrideDates?.fechaFinal) {
+        dateParams = {
+          fechaInicio: overrideDates.fechaInicio,
+          fechaFinal: overrideDates.fechaFinal,
+        };
+      } else {
+        // Extraer fechas del mensaje con IA (Gemini)
+        dateParams = await this.extractDatesFromMessage(message);
+      }
       
       // Obtener datos de ventas
       const salesData = await this.fetchSalesData(dateParams.fechaInicio, dateParams.fechaFinal);
