@@ -1,8 +1,8 @@
 {
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
   "manifestVersion": "1.16",
-  "version": "1.0.0",
-  "id": "d39f0bcb-4407-402f-b9b1-36403ffcf8b9",
+  "version": "1.0.1",
+  "id": "7ef1434c-efca-45b3-a285-771be3d57bfa",
   "developer": {
     "name": "Ezequiel Carissimo - IT",
     "websiteUrl": "https://365empresa.com",
@@ -14,23 +14,31 @@
     "outline": "outline.png"
   },
   "name": {
-    "short": "Atenea",
-    "full": "Atenea - Asistente Empresarial IA"
+    "short": "Atenea Dev",
+    "full": "Atenea Dev - Asistente Empresarial IA"
   },
   "description": {
-    "short": "Tu asistente IA para ventas, incidencias y documentación",
-    "full": "Atenea es un asistente inteligente que te ayuda con consultas de ventas en tiempo real, gestión de incidencias, acceso a políticas y documentación empresarial. Potenciado por IA para responder tus preguntas de forma rápida y precisa."
+    "short": "Bot de entorno de desarrollo. Tu asistente IA.",
+    "full": "Bot de entorno de desarrollo. Atenea es un asistente inteligente que te ayuda con consultas de ventas en tiempo real, gestión de incidencias, acceso a políticas y documentación empresarial. Potenciado por IA para responder tus preguntas de forma rápida y precisa."
   },
   "accentColor": "#4facfe",
   "bots": [
     {
-      "botId": "d39f0bcb-4407-402f-b9b1-36403ffcf8b9",
-      "scopes": ["personal", "team", "groupchat"],
+      "botId": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+      "scopes": [
+        "personal",
+        "team",
+        "groupchat"
+      ],
       "supportsFiles": false,
       "isNotificationOnly": false,
       "commandLists": [
         {
-          "scopes": ["personal", "team", "groupchat"],
+          "scopes": [
+            "personal",
+            "team",
+            "groupchat"
+          ],
           "commands": [
             {
               "title": "ventas",
@@ -58,10 +66,10 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "atenea-bot-prod.azurewebsites.net"
+    "atenea-bot-365.azurewebsites.net"
   ],
   "webApplicationInfo": {
-    "id": "d39f0bcb-4407-402f-b9b1-36403ffcf8b9",
-    "resource": "api://atenea-bot-prod.azurewebsites.net/d39f0bcb-4407-402f-b9b1-36403ffcf8b9"
+    "id": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+    "resource": "api://atenea-bot-365.azurewebsites.net/7ef1434c-efca-45b3-a285-771be3d57bfa"
   }
 }

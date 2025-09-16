@@ -2,9 +2,10 @@
   "$schema": "https://developer.microsoft.com/json-schemas/teams/v1.16/MicrosoftTeams.schema.json",
   "manifestVersion": "1.16",
   "version": "1.0.0",
-  "id": "d39f0bcb-4407-402f-b9b1-36403ffcf8b9",
+  "id": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+  "packageName": "com.empresa365.atenea",
   "developer": {
-    "name": "Ezequiel Carissimo - IT",
+    "name": "365 Empresa",
     "websiteUrl": "https://365empresa.com",
     "privacyUrl": "https://365empresa.com/privacy",
     "termsOfUseUrl": "https://365empresa.com/terms"
@@ -24,7 +25,7 @@
   "accentColor": "#4facfe",
   "bots": [
     {
-      "botId": "d39f0bcb-4407-402f-b9b1-36403ffcf8b9",
+      "botId": "7ef1434c-efca-45b3-a285-771be3d57bfa",
       "scopes": ["personal", "team", "groupchat"],
       "supportsFiles": false,
       "isNotificationOnly": false,
@@ -58,10 +59,10 @@
     "messageTeamMembers"
   ],
   "validDomains": [
-    "atenea-bot-prod.azurewebsites.net"
+    "atenea-bot-365.azurewebsites.net"
   ],
   "webApplicationInfo": {
-    "id": "d39f0bcb-4407-402f-b9b1-36403ffcf8b9",
-    "resource": "api://atenea-bot-prod.azurewebsites.net/d39f0bcb-4407-402f-b9b1-36403ffcf8b9"
+    "id": "7ef1434c-efca-45b3-a285-771be3d57bfa",
+    "resource": "api://atenea-bot-365.azurewebsites.net/7ef1434c-efca-45b3-a285-771be3d57bfa"
   }
 }
